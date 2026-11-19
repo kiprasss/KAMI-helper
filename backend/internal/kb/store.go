@@ -65,6 +65,8 @@ type SourceState struct {
 	Error     string   `json:"error,omitempty"`
 }
 
+const cacheVersion = 2
+
 type cacheFile struct {
 	Version     int                     `json:"version"`
 	LastRefresh int64                   `json:"last_refresh"`
@@ -148,6 +150,11 @@ func (s *Store) LoadCache() error {
 		return fmt.Errorf("кэш повреждён: %w", err)
 	}
 
+	if c.Version != cacheVersion {
+		log.Printf("Кэш старого формата (версия %d) — правила будут скачаны заново", c.Version)
+		return nil
+	}
+
 	s.mu.Lock()
 	if c.Sources != nil {
 		s.sources = c.Sources
@@ -166,7 +173,7 @@ func (s *Store) LoadCache() error {
 func (s *Store) saveCache() error {
 	s.mu.RLock()
 	c := cacheFile{
-		Version:     1,
+		Version:     cacheVersion,
 		LastRefresh: s.lastRefresh,
 		Sources:     s.sources,
 		Documents:   s.documents,

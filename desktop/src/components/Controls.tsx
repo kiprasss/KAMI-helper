@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, Settings } from "lucide-react";
+import { Settings } from "lucide-react";
 
 import { getServers } from "../api/servers";
+import { loadServer } from "../theme";
 import type { Server } from "../types/server";
 
 const SERVER_ICONS: Record<string, string> = {
@@ -42,7 +43,6 @@ function Controls({
   onServerChange,
 }: ControlsProps) {
   const [servers, setServers] = useState<Server[]>([]);
-  const [serverOpen, setServerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -58,7 +58,9 @@ function Controls({
           setLoading(false);
 
           if (data.length > 0) {
-            onServerChange(data[0].code);
+            const saved = loadServer();
+            const initial = data.find((item) => item.code === saved) ?? data[0];
+            onServerChange(initial.code);
           }
         })
         .catch((error) => {
@@ -75,81 +77,33 @@ function Controls({
     };
   }, []);
 
-  const currentServer = servers.find(
-    (item) => item.code === selectedServer
-  );
-
   return (
-    <div className="flex w-full items-center justify-between">
-      <div className="relative">
-        <button
-          type="button"
-          disabled={loading || servers.length === 0}
-          onClick={() => setServerOpen(!serverOpen)}
-          className="
-            flex items-center gap-2
-            rounded-xl border border-white/15
-            bg-[#14141c]/40 px-3 py-2
-            text-xs font-medium text-amber-400
-            shadow-[0_8px_32px_rgba(0,0,0,0.18)]
-            backdrop-blur-2xl
-            transition-all duration-300
-            hover:border-amber-300/50
-            disabled:cursor-not-allowed disabled:opacity-50
-          "
-        >
-          <span className="flex items-center gap-2 text-white">
-            {currentServer && (
-              <ServerIcon code={currentServer.code} />
-            )}
-
-            {loading
-              ? "Загрузка..."
-              : currentServer?.name ?? "Нет серверов"}
-          </span>
-
-          <ChevronDown
-            size={14}
-            className={`transition-transform ${
-              serverOpen ? "rotate-180" : ""
-            }`}
-          />
-        </button>
-
-        {serverOpen && (
-          <div
-            className="
-              absolute left-0 top-full z-50 mt-2
-              min-w-full overflow-hidden rounded-lg
-              border border-white/10
-              bg-[#17171c] p-1 shadow-xl
-            "
-          >
-            {servers.map((item) => (
-              <button
-                key={item.code}
-                type="button"
-                onClick={() => {
-                  onServerChange(item.code);
-                  setServerOpen(false);
-                }}
-                className={`
-                  flex w-full items-center gap-2
-                  rounded-md px-3 py-2
-                  text-left text-xs transition
-                  ${
-                    selectedServer === item.code
-                      ? "bg-amber-400/10 text-amber-300"
-                      : "text-zinc-300 hover:bg-white/6"
-                  }
-                `}
-              >
-                <ServerIcon code={item.code} />
-                {item.name}
-              </button>
-            ))}
-          </div>
+    <div className="flex w-full items-center justify-between gap-2">
+      <div className="flex min-w-0 items-center gap-1 rounded-xl border border-white/10 surface-glass p-1">
+        {loading && (
+          <span className="px-3 py-1.5 text-xs text-zinc-400">Загрузка серверов...</span>
         )}
+
+        {servers.map((item) => (
+          <button
+            key={item.code}
+            type="button"
+            onClick={() => onServerChange(item.code)}
+            className={`
+              flex items-center gap-2
+              rounded-lg border px-3 py-1.5
+              text-xs font-medium transition-colors duration-200
+              ${
+                selectedServer === item.code
+                  ? "border-accent-300/50 bg-accent-400/10 text-white"
+                  : "border-transparent text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
+              }
+            `}
+          >
+            <ServerIcon code={item.code} />
+            {item.name}
+          </button>
+        ))}
       </div>
 
       <button
@@ -157,16 +111,14 @@ function Controls({
         title="Настройки"
         onClick={() => setSettingsOpen(!settingsOpen)}
         className={`
-          flex items-center gap-2
+          flex shrink-0 items-center gap-2
           rounded-xl border px-3 py-2
           text-xs font-medium
-          shadow-[0_8px_32px_rgba(0,0,0,0.18)]
-          backdrop-blur-2xl
-          transition-all duration-300
+          transition-colors duration-200
           ${
             settingsOpen
-              ? "border-amber-300/50 bg-amber-400/10 text-amber-300"
-              : "border-white/15 bg-[#14141c]/40 text-zinc-400 hover:border-amber-300/50"
+              ? "border-accent-300/50 bg-accent-400/10 text-accent-300"
+              : "border-white/10 surface-glass text-zinc-400 hover:border-accent-300/50"
           }
         `}
       >

@@ -40,14 +40,14 @@ function SearchResults({
           flex min-h-40 w-full
           items-center justify-center
           rounded-2xl border border-white/10
-          bg-[#101016]/95 p-6
-          shadow-2xl backdrop-blur-2xl
+          surface-panel p-6
+          shadow-2xl
           select-none
         "
       >
         {loading || baseLoading ? (
           <div className="flex items-center gap-2 text-xs text-zinc-400">
-            <Loader2 size={17} className="animate-spin text-amber-400" />
+            <Loader2 size={17} className="animate-spin text-accent-400" />
             {loading
               ? "Поиск..."
               : status?.blocked
@@ -94,8 +94,8 @@ function SearchResults({
             flex min-h-0 flex-col gap-2
             overflow-y-auto rounded-2xl
             border border-white/10
-            bg-[#101016]/95 p-2
-            shadow-2xl backdrop-blur-2xl
+            surface-panel p-2
+            shadow-2xl
             scrollbar-hide
           "
         >
@@ -113,8 +113,8 @@ function SearchResults({
           className="
             min-h-0 overflow-hidden rounded-2xl
             border border-white/10
-            bg-[#101016]/95
-            shadow-2xl backdrop-blur-2xl
+            surface-panel
+            shadow-2xl
           "
         >
           <SearchResultDetails result={selectedResult} />

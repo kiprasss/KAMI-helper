@@ -30,21 +30,21 @@ function SearchBar({ onSearch }: SearchBarProps) {
       className="
         group flex h-14 w-180 max-w-[90vw]
         items-center gap-3 rounded-2xl
-        border border-amber-300/35
-        bg-[#14141c]/40 px-5
+        border border-accent-300/35
+        surface-glass px-5
         shadow-[0_8px_32px_rgba(0,0,0,0.18)]
-        backdrop-blur-2xl
+
         transition-all duration-300
-        focus-within:border-amber-300/80
-        focus-within:shadow-[0_0_25px_rgba(255,190,0,0.22)]
+        focus-within:border-accent-300/80
+        focus-within:shadow-[0_0_25px_var(--accent-glow)]
       "
     >
       <Search
         size={21}
         className="
-          shrink-0 text-amber-400/65
+          shrink-0 text-accent-400/65
           transition-colors
-          group-focus-within:text-amber-300
+          group-focus-within:text-accent-300
         "
       />
 

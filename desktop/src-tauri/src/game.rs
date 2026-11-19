@@ -34,13 +34,19 @@ impl GameMonitor {
             }),
         });
 
-        etw::start(monitor.clone());
-
         let worker = monitor.clone();
         std::thread::spawn(move || {
             loop {
                 std::thread::sleep(Duration::from_secs(1));
                 worker.tick();
+
+                let running = worker.pid.load(Ordering::SeqCst) != 0;
+                if running && !etw::is_active() {
+                    etw::start(worker.clone());
+                } else if !running && etw::is_active() {
+                    etw::stop();
+                    worker.fps_available.store(false, Ordering::SeqCst);
+                }
             }
         });
 
@@ -137,8 +143,8 @@ fn find_game_pid() -> Option<u32> {
 
 #[cfg(windows)]
 mod etw {
-    use std::sync::Arc;
     use std::sync::atomic::Ordering;
+    use std::sync::{Arc, Mutex};
 
     use ferrisetw::provider::Provider;
     use ferrisetw::trace::{TraceTrait, UserTrace, stop_trace_by_name};
@@ -151,37 +157,59 @@ mod etw {
     const PRESENT_START: u16 = 42;
     const PRESENT_MULTIPLANE_START: u16 = 55;
 
+    static TRACE: Mutex<Option<UserTrace>> = Mutex::new(None);
+    static ATTEMPTED: Mutex<bool> = Mutex::new(false);
+
+    pub fn is_active() -> bool {
+        TRACE.lock().map(|t| t.is_some()).unwrap_or(false)
+            || ATTEMPTED.lock().map(|a| *a).unwrap_or(false)
+    }
+
     pub fn start(monitor: Arc<GameMonitor>) {
-        std::thread::spawn(move || {
-            let _ = stop_trace_by_name(SESSION_NAME);
+        if let Ok(mut attempted) = ATTEMPTED.lock() {
+            *attempted = true;
+        }
 
-            let callback_monitor = monitor.clone();
-            let provider = Provider::by_guid(GUID::from(DXGI_PROVIDER))
-                .add_callback(move |record: &EventRecord, _: &SchemaLocator| {
-                    let id = record.event_id();
-                    if id == PRESENT_START || id == PRESENT_MULTIPLANE_START {
-                        callback_monitor.on_present(record.process_id());
-                    }
-                })
-                .build();
+        let _ = stop_trace_by_name(SESSION_NAME);
 
-            match UserTrace::new()
-                .named(SESSION_NAME.to_string())
-                .enable(provider)
-                .start_and_process()
-            {
-                Ok(trace) => {
-                    monitor.fps_available.store(true, Ordering::SeqCst);
-                    std::mem::forget(trace);
+        let callback_monitor = monitor.clone();
+        let provider = Provider::by_guid(GUID::from(DXGI_PROVIDER))
+            .add_callback(move |record: &EventRecord, _: &SchemaLocator| {
+                let id = record.event_id();
+                if id == PRESENT_START || id == PRESENT_MULTIPLANE_START {
+                    callback_monitor.on_present(record.process_id());
                 }
-                Err(_) => {
-                    monitor.fps_available.store(false, Ordering::SeqCst);
+            })
+            .build();
+
+        match UserTrace::new()
+            .named(SESSION_NAME.to_string())
+            .enable(provider)
+            .start_and_process()
+        {
+            Ok(trace) => {
+                monitor.fps_available.store(true, Ordering::SeqCst);
+                if let Ok(mut slot) = TRACE.lock() {
+                    *slot = Some(trace);
                 }
             }
-        });
+            Err(_) => {
+                monitor.fps_available.store(false, Ordering::SeqCst);
+            }
+        }
     }
 
     pub fn stop() {
+        if let Ok(mut slot) = TRACE.lock() {
+            if let Some(trace) = slot.take() {
+                let _ = trace.stop();
+            }
+        }
+
+        if let Ok(mut attempted) = ATTEMPTED.lock() {
+            *attempted = false;
+        }
+
         let _ = stop_trace_by_name(SESSION_NAME);
     }
 }
@@ -191,6 +219,10 @@ mod etw {
     use std::sync::Arc;
 
     use super::GameMonitor;
+
+    pub fn is_active() -> bool {
+        false
+    }
 
     pub fn start(_monitor: Arc<GameMonitor>) {}
 

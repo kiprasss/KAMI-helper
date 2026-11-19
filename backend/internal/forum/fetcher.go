@@ -185,15 +185,42 @@ var ErrNotImage = errors.New("по ссылке не изображение")
 
 const maxImageSize = 15 << 20
 
+var errImageChallenge = errors.New("форум требует проверку браузера для изображения")
+
 func (f *Fetcher) FetchImage(ctx context.Context, imageURL string) ([]byte, string, error) {
 	data, contentType, err := f.fetchImageOnce(ctx, imageURL)
-	if errors.Is(err, ErrNotImage) && sameHost(imageURL, f.opts.ForumBaseURL) {
-		if _, getErr := f.Get(ctx, f.opts.ForumBaseURL+"/"); getErr == nil {
-			return f.fetchImageOnce(ctx, imageURL)
-		}
+	if !errors.Is(err, errImageChallenge) {
+		return data, contentType, err
 	}
 
-	return data, contentType, err
+	if clearErr := f.refreshClearance(ctx, imageURL); clearErr != nil {
+		return nil, "", clearErr
+	}
+
+	return f.fetchImageOnce(ctx, imageURL)
+}
+
+func (f *Fetcher) refreshClearance(ctx context.Context, pageURL string) error {
+	if !f.opts.BrowserClearance {
+		return ErrBlocked
+	}
+
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	if time.Since(f.lastClearance) < 20*time.Second {
+		return nil
+	}
+
+	cookie, err := ObtainClearance(ctx, pageURL, f.opts.UserAgent, f.opts.BrowserPath)
+	if err != nil {
+		return err
+	}
+
+	f.setCookie(cookie)
+	f.lastClearance = time.Now()
+
+	return nil
 }
 
 func (f *Fetcher) fetchImageOnce(ctx context.Context, imageURL string) ([]byte, string, error) {
@@ -215,11 +242,18 @@ func (f *Fetcher) fetchImageOnce(ctx context.Context, imageURL string) ([]byte, 
 	}
 	defer res.Body.Close()
 
+	forumImage := sameHost(imageURL, f.opts.ForumBaseURL)
+	contentType := res.Header.Get("Content-Type")
+
+	if forumImage && (res.StatusCode == http.StatusUnauthorized || res.StatusCode == http.StatusForbidden ||
+		(res.StatusCode == http.StatusOK && strings.HasPrefix(contentType, "text/html"))) {
+		return nil, "", errImageChallenge
+	}
+
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
 		return nil, "", &HTTPError{Status: res.StatusCode, URL: imageURL}
 	}
 
-	contentType := res.Header.Get("Content-Type")
 	if !strings.HasPrefix(contentType, "image/") {
 		return nil, "", ErrNotImage
 	}

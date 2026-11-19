@@ -13,6 +13,7 @@ import { getStatus } from "./api/status";
 import type { SearchResult } from "./types/search";
 import type { KnowledgeStatus } from "./types/status";
 import { OPACITY_EVENT, isOpacityKey, loadOpacity } from "./overlay";
+import { applySurfaceAlpha, applyTheme, loadServer, saveServer } from "./theme";
 import {
   DEFAULT_HOTKEY,
   loadSavedHotkey,
@@ -22,6 +23,9 @@ import {
 } from "./hotkey";
 
 const savedHotkey = loadSavedHotkey();
+
+applyTheme(loadServer());
+applySurfaceAlpha(loadOpacity("main"));
 
 function App() {
   useEffect(() => {
@@ -42,10 +46,8 @@ function App() {
   const [searchError, setSearchError] = useState<string | null>(null);
 
   const [status, setStatus] = useState<KnowledgeStatus | null>(null);
-  const [mainOpacity, setMainOpacity] = useState(() => loadOpacity("main"));
-
   useEffect(() => {
-    const refresh = () => setMainOpacity(loadOpacity("main"));
+    const refresh = () => applySurfaceAlpha(loadOpacity("main"));
     const onStorage = (event: StorageEvent) => {
       if (isOpacityKey(event.key)) refresh();
     };
@@ -251,6 +253,8 @@ function App() {
 
   const handleServerChange = (server: string) => {
     setSelectedServer(server);
+    applyTheme(server);
+    saveServer(server);
 
     if (query.trim()) {
       runSearch(query, server);
@@ -260,11 +264,10 @@ function App() {
   return (
     <main
       className="h-full w-full overflow-hidden"
-      style={{ opacity: mainOpacity / 100 }}
       onMouseDown={startDragging}
     >
       <div className="flex h-full w-full flex-col items-center gap-3 overflow-hidden p-3">
-        <div className="flex w-full max-w-[744px] shrink-0 flex-col gap-2 rounded-xl bg-black/30 p-3">
+        <div className="flex w-full max-w-[744px] shrink-0 flex-col gap-2 rounded-xl surface-shell p-3">
           <SearchBar onSearch={handleSearch} />
 
           <Controls
@@ -275,7 +278,7 @@ function App() {
           />
 
           {settingsOpen && (
-            <div className="w-full rounded-xl bg-black/20 p-3">
+            <div className="w-full rounded-xl surface-sub p-3">
               <Settings
                 hotkey={hotkey}
                 onHotkeyChange={changeHotkey}

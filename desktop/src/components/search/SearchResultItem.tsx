@@ -1,13 +1,10 @@
+import Highlight from "../Highlight";
 import type { SearchResult } from "../../types/search";
 
 interface SearchResultItemProps {
   result: SearchResult;
   selected: boolean;
   onClick: () => void;
-}
-
-function plainSnippet(snippet: string) {
-  return snippet.replace(/<\/?mark>/g, "");
 }
 
 function SearchResultItem({
@@ -24,8 +21,8 @@ function SearchResultItem({
         transition-all duration-200
         ${
           selected
-            ? "border-amber-300/50 bg-amber-400/10"
-            : "border-white/10 bg-[#14141c]/50 hover:border-white/20 hover:bg-white/5"
+            ? "border-accent-300/50 bg-accent-400/10"
+            : "border-white/10 surface-glass hover:border-white/20 hover:bg-white/5"
         }
       `}
     >
@@ -35,8 +32,8 @@ function SearchResultItem({
             {result.document_title}
           </h3>
 
-          <p className="mt-1 truncate text-[11px] text-zinc-500">
-            {plainSnippet(result.snippet)}
+          <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-zinc-400">
+            <Highlight text={result.snippet} />
           </p>
         </div>
 
@@ -46,7 +43,7 @@ function SearchResultItem({
             text-[10px] font-semibold
             ${
               selected
-                ? "border-amber-300/30 bg-amber-400/10 text-amber-300"
+                ? "border-accent-300/30 bg-accent-400/10 text-accent-300"
                 : "border-white/10 bg-white/5 text-zinc-400"
             }
           `}

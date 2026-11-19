@@ -84,7 +84,9 @@ const OPACITY_KEYS: Record<OpacityTarget, string> = {
 
 export function loadOpacity(target: OpacityTarget): number {
   const value = Number(read(OPACITY_KEYS[target]));
-  return Number.isFinite(value) && value >= 20 && value <= 100 ? value : 100;
+  const saved = read(OPACITY_KEYS[target]);
+  if (saved === null) return 90;
+  return Number.isFinite(value) && value >= 20 && value <= 100 ? value : 90;
 }
 
 export function nextOpacity(current: number): number {

@@ -18,11 +18,11 @@ import type { MonitorInfo } from "../overlay";
 const ROW_CLASS = `
   flex h-14 cursor-pointer items-center justify-between
   rounded-xl border px-4 outline-none transition-all
-  border-white/10 bg-white/5 hover:border-amber-300/40
+  border-white/10 bg-white/5 hover:border-accent-300/40
 `;
 
 const BADGE_CLASS =
-  "rounded-lg border border-amber-300/30 bg-amber-300/10 px-3 py-1.5 text-sm font-semibold text-amber-300";
+  "rounded-lg border border-accent-300/30 bg-accent-300/10 px-3 py-1.5 text-sm font-semibold text-accent-300";
 
 interface SettingsProps {
   hotkey: string;
@@ -144,20 +144,20 @@ function Settings({
           rounded-xl border px-4 outline-none transition-all
           ${
             isBinding
-              ? "border-amber-300/70 bg-amber-300/10"
-              : "border-white/10 bg-white/5 hover:border-amber-300/40"
+              ? "border-accent-300/70 bg-accent-300/10"
+              : "border-white/10 bg-white/5 hover:border-accent-300/40"
           }
         `}
       >
         <div className="flex items-center gap-3">
-          <Keyboard size={19} className="text-amber-400" />
+          <Keyboard size={19} className="text-accent-400" />
 
           <span className="text-sm font-medium text-white">
             Клавиша открытия / скрытия
           </span>
         </div>
 
-        <span className="rounded-lg border border-amber-300/30 bg-amber-300/10 px-3 py-1.5 text-sm font-semibold text-amber-300">
+        <span className="rounded-lg border border-accent-300/30 bg-accent-300/10 px-3 py-1.5 text-sm font-semibold text-accent-300">
           {isBinding ? "Нажмите клавишу..." : formatHotkey(hotkey)}
         </span>
       </div>
@@ -177,14 +177,14 @@ function Settings({
         className={ROW_CLASS}
       >
         <div className="flex items-center gap-3">
-          <Blend size={19} className="text-amber-400" />
+          <Blend size={19} className="text-accent-400" />
 
           <span className="text-sm font-medium text-white">
             Прозрачность главного окна
           </span>
         </div>
 
-        <span className={BADGE_CLASS}>{mainOpacity}%</span>
+        <span className={BADGE_CLASS}>{100 - mainOpacity}%</span>
       </div>
 
       <div
@@ -195,7 +195,7 @@ function Settings({
         className={ROW_CLASS}
       >
         <div className="flex items-center gap-3">
-          <PanelTop size={19} className="text-amber-400" />
+          <PanelTop size={19} className="text-accent-400" />
 
           <span className="text-sm font-medium text-white">
             Мини-окно с временем и FPS
@@ -214,14 +214,14 @@ function Settings({
           className={ROW_CLASS}
         >
           <div className="flex items-center gap-3">
-            <Blend size={19} className="text-amber-400" />
+            <Blend size={19} className="text-accent-400" />
 
             <span className="text-sm font-medium text-white">
               Прозрачность мини-окна
             </span>
           </div>
 
-          <span className={BADGE_CLASS}>{miniOpacity}%</span>
+          <span className={BADGE_CLASS}>{100 - miniOpacity}%</span>
         </div>
       )}
 
@@ -234,7 +234,7 @@ function Settings({
           className={ROW_CLASS}
         >
           <div className="flex items-center gap-3">
-            <Monitor size={19} className="text-amber-400" />
+            <Monitor size={19} className="text-accent-400" />
 
             <span className="text-sm font-medium text-white">
               Монитор для мини-окна
@@ -248,7 +248,7 @@ function Settings({
       )}
 
       <p className="px-1 text-xs text-white/40">
-        Мини-окно (время по МСК и FPS) появляется сверху по центру выбранного монитора, когда вы скрываете окно клавишей. Нажимайте на прозрачность, чтобы менять её от 100% до 20%
+        Мини-окно (время по МСК и FPS) появляется сверху по центру выбранного монитора, когда вы скрываете окно клавишей. Прозрачность меняет только фон, текст остаётся чётким: нажимайте, чтобы менять от 0% до 80%
       </p>
     </div>
   );

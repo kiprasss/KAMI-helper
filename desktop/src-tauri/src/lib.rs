@@ -64,7 +64,26 @@ fn backend_path(_dir: &Path) -> Option<PathBuf> {
     path.exists().then_some(path)
 }
 
+fn stop_stale_backend() {
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+
+        let _ = Command::new("taskkill")
+            .args(["/F", "/IM", "kami-backend.exe"])
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .creation_flags(0x0800_0000)
+            .status();
+
+        std::thread::sleep(std::time::Duration::from_millis(400));
+    }
+}
+
 fn start_backend() -> Option<Child> {
+    stop_stale_backend();
+
     let dir = data_dir();
     fs::create_dir_all(&dir).ok()?;
 
@@ -204,6 +223,9 @@ fn show_main(app: &tauri::AppHandle) {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            show_main(app);
+        }))
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {

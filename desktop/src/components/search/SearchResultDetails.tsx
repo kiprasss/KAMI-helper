@@ -69,7 +69,7 @@ function SearchResultDetails({ result }: SearchResultDetailsProps) {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center gap-2 text-xs text-zinc-400">
-        <Loader2 size={17} className="animate-spin text-amber-400" />
+        <Loader2 size={17} className="animate-spin text-accent-400" />
         Загружаем правило...
       </div>
     );
@@ -106,9 +106,9 @@ function SearchResultDetails({ result }: SearchResultDetailsProps) {
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <div className="shrink-0 border-b border-white/10 p-4">
         <div className="mb-3 flex items-center gap-2">
-          <FileText size={14} className="text-amber-400" />
+          <FileText size={14} className="text-accent-400" />
 
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-400">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-accent-400">
             {details.document_type === "project_rules"
               ? "Общие правила проекта"
               : "Законодательство"}
@@ -127,7 +127,7 @@ function SearchResultDetails({ result }: SearchResultDetailsProps) {
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {details.point && (
-            <span className="rounded-md border border-amber-400/30 bg-amber-400/10 px-2 py-1 text-[11px] font-medium text-amber-400">
+            <span className="rounded-md border border-accent-400/30 bg-accent-400/10 px-2 py-1 text-[11px] font-medium text-accent-400">
               Правило {details.point}
             </span>
           )}
@@ -155,7 +155,7 @@ function SearchResultDetails({ result }: SearchResultDetailsProps) {
 
           {images.length > 0 && (
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-amber-400">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-accent-400">
                 Изображения
               </p>
 
@@ -181,7 +181,7 @@ function SearchResultDetails({ result }: SearchResultDetailsProps) {
 
           {details.punishment && (
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-amber-400">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-accent-400">
                 Наказание
               </p>
 
