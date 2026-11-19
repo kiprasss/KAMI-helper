@@ -43,7 +43,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://api.novarp.games https://s3.grandroleplay.ru; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost http://localhost:8080 http://127.0.0.1:8080 https:",
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://api.novarp.games https://s3.grandroleplay.ru http://localhost:8080 http://127.0.0.1:8080; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost http://localhost:8080 http://127.0.0.1:8080 https:",
       "devCsp": null
     }
   },

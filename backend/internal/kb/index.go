@@ -16,17 +16,18 @@ const (
 )
 
 type Entry struct {
-	ID          string `json:"id"`
-	Kind        string `json:"kind"`
-	DocURL      string `json:"-"`
-	PostURL     string `json:"url"`
-	Title       string `json:"document_title"`
-	Breadcrumbs string `json:"breadcrumbs"`
-	DocType     string `json:"document_type"`
-	IsRules     bool   `json:"-"`
-	Point       string `json:"point"`
-	Text        string `json:"text"`
-	Punishment  string `json:"punishment"`
+	ID          string   `json:"id"`
+	Kind        string   `json:"kind"`
+	DocURL      string   `json:"-"`
+	PostURL     string   `json:"url"`
+	Title       string   `json:"document_title"`
+	Breadcrumbs string   `json:"breadcrumbs"`
+	DocType     string   `json:"document_type"`
+	IsRules     bool     `json:"-"`
+	Point       string   `json:"point"`
+	Text        string   `json:"text"`
+	Punishment  string   `json:"punishment"`
+	Images      []string `json:"images"`
 }
 
 func (e *Entry) indexText() string {

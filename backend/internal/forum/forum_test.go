@@ -235,3 +235,44 @@ func TestNormalizeURL(t *testing.T) {
 		t.Fatal("распознавание проверки браузера")
 	}
 }
+
+func TestImages(t *testing.T) {
+	page := `<html><body><h1 class="p-title-value">Правила зелёных зон</h1>
+<article class="message message--post" data-author="Admin" data-content="post-1">
+<div class="message-body"><div class="bbWrapper">
+<img src="/attachments/6232/" class="bbImage" alt="1793238981465.png" width="2171" height="76">
+1.1 Запрещено стрелять в зелёной зоне. | JAIL 60 минут<br>
+<img src="https://i.imgur.com/fosI9OM.png" data-url="https://i.imgur.com/fosI9OM.png" class="bbImage" alt="fosI9OM.png">
+<img src="/styles/smile.png" class="smilie" alt=":)">
+1.2 Запрещено убивать в зелёной зоне. | JAIL 90 минут
+</div></div></article></body></html>`
+
+	th, err := ParseThread(page, testBase+"/threads/402987/")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	text := th.Posts[0].Text
+	if strings.Contains(text, "6232") || strings.Contains(text, "1793238981465") {
+		t.Fatalf("декоративная полоса попала в текст: %q", text)
+	}
+
+	rules := ExtractRules(text, 6)
+	if len(rules) != 2 {
+		t.Fatalf("пункты: %+v", rules)
+	}
+	if len(rules[0].Images) != 1 || rules[0].Images[0] != "https://i.imgur.com/fosI9OM.png" {
+		t.Fatalf("изображения пункта 1.1: %+v", rules[0].Images)
+	}
+	if strings.Contains(rules[0].Text, "[[IMG") || rules[0].Punishment != "JAIL 60 минут" {
+		t.Fatalf("пункт 1.1: %+v", rules[0])
+	}
+	if len(rules[1].Images) != 0 {
+		t.Fatalf("лишние изображения у 1.2: %+v", rules[1].Images)
+	}
+
+	clean, images := ExtractImages(text)
+	if len(images) != 1 || strings.Contains(clean, "[[IMG") {
+		t.Fatalf("%q %v", clean, images)
+	}
+}

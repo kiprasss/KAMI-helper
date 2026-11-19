@@ -12,6 +12,7 @@ import { searchRules } from "./api/search";
 import { getStatus } from "./api/status";
 import type { SearchResult } from "./types/search";
 import type { KnowledgeStatus } from "./types/status";
+import { OPACITY_EVENT, isOpacityKey, loadOpacity } from "./overlay";
 import {
   DEFAULT_HOTKEY,
   loadSavedHotkey,
@@ -41,6 +42,22 @@ function App() {
   const [searchError, setSearchError] = useState<string | null>(null);
 
   const [status, setStatus] = useState<KnowledgeStatus | null>(null);
+  const [mainOpacity, setMainOpacity] = useState(() => loadOpacity("main"));
+
+  useEffect(() => {
+    const refresh = () => setMainOpacity(loadOpacity("main"));
+    const onStorage = (event: StorageEvent) => {
+      if (isOpacityKey(event.key)) refresh();
+    };
+
+    window.addEventListener("storage", onStorage);
+    window.addEventListener(OPACITY_EVENT, refresh);
+
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(OPACITY_EVENT, refresh);
+    };
+  }, []);
 
   const registeredHotkey = useRef<string | null>(null);
   const isBindingRef = useRef(false);
@@ -241,7 +258,11 @@ function App() {
   };
 
   return (
-    <main className="h-full w-full overflow-hidden" onMouseDown={startDragging}>
+    <main
+      className="h-full w-full overflow-hidden"
+      style={{ opacity: mainOpacity / 100 }}
+      onMouseDown={startDragging}
+    >
       <div className="flex h-full w-full flex-col items-center gap-3 overflow-hidden p-3">
         <div className="flex w-full max-w-[744px] shrink-0 flex-col gap-2 rounded-xl bg-black/30 p-3">
           <SearchBar onSearch={handleSearch} />

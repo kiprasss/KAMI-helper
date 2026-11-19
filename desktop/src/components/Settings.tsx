@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
 import type { KeyboardEvent } from "react";
-import { Keyboard, Monitor, PanelTop } from "lucide-react";
+import { Blend, Keyboard, Monitor, PanelTop } from "lucide-react";
 
 import { formatHotkey, parseHotkeyEvent } from "../hotkey";
 import {
   listMonitors,
   loadMiniEnabled,
   loadMiniMonitor,
+  loadOpacity,
+  nextOpacity,
   saveMiniEnabled,
   saveMiniMonitor,
+  saveOpacity,
 } from "../overlay";
 import type { MonitorInfo } from "../overlay";
 
@@ -56,6 +59,21 @@ function Settings({
         console.error("Не удалось получить список мониторов:", err);
       });
   }, []);
+
+  const [mainOpacity, setMainOpacity] = useState(() => loadOpacity("main"));
+  const [miniOpacity, setMiniOpacity] = useState(() => loadOpacity("mini"));
+
+  const cycleMainOpacity = () => {
+    const next = nextOpacity(mainOpacity);
+    setMainOpacity(next);
+    saveOpacity("main", next);
+  };
+
+  const cycleMiniOpacity = () => {
+    const next = nextOpacity(miniOpacity);
+    setMiniOpacity(next);
+    saveOpacity("mini", next);
+  };
 
   const toggleMini = () => {
     const next = !miniEnabled;
@@ -154,6 +172,24 @@ function Settings({
       <div
         tabIndex={0}
         role="button"
+        onClick={cycleMainOpacity}
+        onKeyDown={activateOnKey(cycleMainOpacity)}
+        className={ROW_CLASS}
+      >
+        <div className="flex items-center gap-3">
+          <Blend size={19} className="text-amber-400" />
+
+          <span className="text-sm font-medium text-white">
+            Прозрачность главного окна
+          </span>
+        </div>
+
+        <span className={BADGE_CLASS}>{mainOpacity}%</span>
+      </div>
+
+      <div
+        tabIndex={0}
+        role="button"
         onClick={toggleMini}
         onKeyDown={activateOnKey(toggleMini)}
         className={ROW_CLASS}
@@ -162,12 +198,32 @@ function Settings({
           <PanelTop size={19} className="text-amber-400" />
 
           <span className="text-sm font-medium text-white">
-            Мини-окно с временем МСК и FPS
+            Мини-окно с временем и FPS
           </span>
         </div>
 
         <span className={BADGE_CLASS}>{miniEnabled ? "Вкл" : "Выкл"}</span>
       </div>
+
+      {miniEnabled && (
+        <div
+          tabIndex={0}
+          role="button"
+          onClick={cycleMiniOpacity}
+          onKeyDown={activateOnKey(cycleMiniOpacity)}
+          className={ROW_CLASS}
+        >
+          <div className="flex items-center gap-3">
+            <Blend size={19} className="text-amber-400" />
+
+            <span className="text-sm font-medium text-white">
+              Прозрачность мини-окна
+            </span>
+          </div>
+
+          <span className={BADGE_CLASS}>{miniOpacity}%</span>
+        </div>
+      )}
 
       {miniEnabled && (
         <div
@@ -192,7 +248,7 @@ function Settings({
       )}
 
       <p className="px-1 text-xs text-white/40">
-        Мини-окно появляется сверху по центру выбранного монитора, когда вы скрываете окно клавишей
+        Мини-окно (время по МСК и FPS) появляется сверху по центру выбранного монитора, когда вы скрываете окно клавишей. Нажимайте на прозрачность, чтобы менять её от 100% до 20%
       </p>
     </div>
   );

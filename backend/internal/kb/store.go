@@ -42,8 +42,9 @@ type StoredRule struct {
 }
 
 type Chunk struct {
-	PostURL string `json:"post_url"`
-	Text    string `json:"text"`
+	PostURL string   `json:"post_url"`
+	Text    string   `json:"text"`
+	Images  []string `json:"images,omitempty"`
 }
 
 type Document struct {
@@ -94,6 +95,7 @@ type Store struct {
 	index       *Index
 	scopes      map[string]map[string]bool
 	docTypes    map[string]string
+	images      map[string]bool
 	status      Status
 
 	refreshMu sync.Mutex
@@ -273,6 +275,7 @@ func (s *Store) rebuild() {
 			e.Kind = KindText
 			e.PostURL = c.PostURL
 			e.Text = c.Text
+			e.Images = c.Images
 			entries = append(entries, &e)
 		}
 
@@ -285,13 +288,22 @@ func (s *Store) rebuild() {
 				e.Point = r.Point
 				e.Text = r.Text
 				e.Punishment = r.Punishment
+				e.Images = r.Images
 				entries = append(entries, &e)
 				rulesCount++
 			}
 		}
 	}
 
+	images := map[string]bool{}
+	for _, e := range entries {
+		for _, img := range e.Images {
+			images[img] = true
+		}
+	}
+
 	s.index = BuildIndex(entries)
+	s.images = images
 	s.scopes = scopes
 	s.docTypes = docTypes
 	s.status.Ready = len(entries) > 0
@@ -312,6 +324,13 @@ func (s *Store) Search(query, server string) []Hit {
 	}
 
 	return idx.Search(query, allowed)
+}
+
+func (s *Store) KnownImage(url string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return s.images[url]
 }
 
 func (s *Store) Get(id string) *Entry {
@@ -579,7 +598,13 @@ func (s *Store) indexThread(ctx context.Context, url string, listingTs int64, fe
 			chunks = forum.ChunkText(text, 900, 120)
 		}
 		for _, c := range chunks {
-			doc.Chunks = append(doc.Chunks, Chunk{PostURL: post.URL, Text: c})
+			clean, images := forum.ExtractImages(c)
+			if strings.TrimSpace(clean) == "" && len(images) > 0 && len(doc.Chunks) > 0 {
+				last := &doc.Chunks[len(doc.Chunks)-1]
+				last.Images = append(last.Images, images...)
+				continue
+			}
+			doc.Chunks = append(doc.Chunks, Chunk{PostURL: post.URL, Text: clean, Images: images})
 		}
 
 		source := post.Text

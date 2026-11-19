@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { getGameStatus } from "../overlay";
+import { OPACITY_EVENT, getGameStatus, isOpacityKey, loadOpacity } from "../overlay";
 import type { GameStatus } from "../overlay";
 
 const moscowTime = new Intl.DateTimeFormat("ru-RU", {
@@ -12,6 +12,22 @@ const moscowTime = new Intl.DateTimeFormat("ru-RU", {
 function MiniOverlay() {
   const [now, setNow] = useState(() => new Date());
   const [status, setStatus] = useState<GameStatus | null>(null);
+  const [opacity, setOpacity] = useState(() => loadOpacity("mini"));
+
+  useEffect(() => {
+    const refresh = () => setOpacity(loadOpacity("mini"));
+    const onStorage = (event: StorageEvent) => {
+      if (isOpacityKey(event.key)) refresh();
+    };
+
+    window.addEventListener("storage", onStorage);
+    window.addEventListener(OPACITY_EVENT, refresh);
+
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(OPACITY_EVENT, refresh);
+    };
+  }, []);
 
   useEffect(() => {
     let stopped = false;
@@ -42,20 +58,23 @@ function MiniOverlay() {
   }
 
   return (
-    <main className="flex h-full w-full items-center justify-center overflow-hidden select-none">
+    <main
+      className="flex h-full w-full items-center justify-center overflow-hidden select-none"
+      style={{ opacity: opacity / 100 }}
+    >
       <div
         className="
           flex items-center gap-2
-          rounded-xl border border-white/15
-          bg-[#14141c]/40 px-3 py-2
-          text-xs font-medium text-amber-400
+          rounded-xl border px-3 py-2
+          text-xs font-medium
           shadow-[0_8px_32px_rgba(0,0,0,0.18)]
           backdrop-blur-2xl
+          border-amber-300/50 bg-amber-400/10 text-amber-300
         "
       >
-        <span className="text-white">МСК {moscowTime.format(now)}</span>
+        <span className="text-white">{moscowTime.format(now)}</span>
         <span className="text-white/35">·</span>
-        <span className={status?.running ? "text-amber-400" : "text-zinc-400"}>
+        <span className={status?.running ? "text-amber-300" : "text-zinc-300"}>
           {gameText}
         </span>
       </div>

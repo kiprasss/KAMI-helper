@@ -20,3 +20,7 @@ export async function apiGet<T>(endpoint: string): Promise<T> {
 
   return response.json();
 }
+
+export function imageSrc(url: string): string {
+  return `${API_URL}/image?url=${encodeURIComponent(url)}`;
+}

@@ -1,6 +1,7 @@
 package forum
 
 import (
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -75,12 +76,82 @@ func cleanText(text string) string {
 	return strings.TrimSpace(text)
 }
 
-func htmlToText(sel *goquery.Selection) string {
+const imagePrefix = "[[IMG "
+const imageSuffix = "]]"
+
+var imageMarkerRe = regexp.MustCompile(`\[\[IMG (\S+)\]\]`)
+
+func ExtractImages(text string) (string, []string) {
+	var images []string
+	seen := map[string]bool{}
+
+	for _, m := range imageMarkerRe.FindAllStringSubmatch(text, -1) {
+		if !seen[m[1]] {
+			seen[m[1]] = true
+			images = append(images, m[1])
+		}
+	}
+
+	if len(images) == 0 {
+		return text, nil
+	}
+
+	return cleanText(imageMarkerRe.ReplaceAllString(text, "")), images
+}
+
+func IsImageLine(line string) bool {
+	return strings.HasPrefix(strings.TrimSpace(line), imagePrefix)
+}
+
+func imageURL(img *goquery.Selection, baseURL string) string {
+	src, _ := img.Attr("data-url")
+	if src == "" {
+		src, _ = img.Attr("data-src")
+	}
+	if src == "" {
+		src, _ = img.Attr("src")
+	}
+
+	src = strings.TrimSpace(src)
+	if src == "" || strings.HasPrefix(src, "data:") {
+		return ""
+	}
+
+	base, err := url.Parse(baseURL)
+	if err != nil {
+		return ""
+	}
+
+	abs, err := base.Parse(src)
+	if err != nil || (abs.Scheme != "http" && abs.Scheme != "https") {
+		return ""
+	}
+
+	return strings.ReplaceAll(abs.String(), " ", "%20")
+}
+
+func isDecorativeBanner(img *goquery.Selection) bool {
+	w, errW := strconv.Atoi(img.AttrOr("width", ""))
+	h, errH := strconv.Atoi(img.AttrOr("height", ""))
+
+	return errW == nil && errH == nil && h > 0 && h <= 150 && w/h >= 8
+}
+
+func htmlToText(sel *goquery.Selection, baseURL string) string {
 	node := sel.Clone()
 
 	node.Find("script, style, noscript, .bbCodeBlock-expandLink, .bbCodeBlock-title, .js-unfurl-favicon").Remove()
 
 	node.Find("img").Each(func(_ int, img *goquery.Selection) {
+		if img.HasClass("bbImage") {
+			replacement := " "
+			if src := imageURL(img, baseURL); src != "" && !isDecorativeBanner(img) {
+				replacement = "\n" + imagePrefix + src + imageSuffix + "\n"
+			}
+			img.ReplaceWithNodes(&html.Node{Type: html.TextNode, Data: replacement})
+			return
+		}
+
 		alt, _ := img.Attr("alt")
 		replacement := " "
 		if alt != "" && !smileyAltRe.MatchString(alt) {
@@ -153,7 +224,7 @@ func ParseThread(body, threadURL string) (ParsedThread, error) {
 	seen := map[string]bool{}
 	doc.Find("dl.pairs--customField").Each(func(_ int, dl *goquery.Selection) {
 		label := cleanText(dl.Find("dt").First().Text())
-		value := htmlToText(dl.Find("dd").First())
+		value, _ := ExtractImages(htmlToText(dl.Find("dd").First(), threadURL))
 		key := label + "\x00" + value
 		if label != "" && value != "" && !seen[key] {
 			seen[key] = true
@@ -184,7 +255,7 @@ func ParseThread(body, threadURL string) (ParsedThread, error) {
 			ID:     id,
 			Author: author,
 			URL:    threadURL + "#post-" + id,
-			Text:   htmlToText(bodySel),
+			Text:   htmlToText(bodySel, threadURL),
 		})
 	})
 

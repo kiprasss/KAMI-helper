@@ -8,6 +8,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"backend/internal/forum"
 	"backend/internal/kb"
 
 	"github.com/go-chi/chi/v5"
@@ -16,11 +17,13 @@ import (
 const maxQueryLength = 200
 
 type Handler struct {
-	store *kb.Store
+	store   *kb.Store
+	fetcher *forum.Fetcher
+	images  *imageCache
 }
 
-func NewHandler(store *kb.Store) *Handler {
-	return &Handler{store: store}
+func NewHandler(store *kb.Store, fetcher *forum.Fetcher) *Handler {
+	return &Handler{store: store, fetcher: fetcher, images: newImageCache()}
 }
 
 func (h *Handler) Register(r chi.Router) {
@@ -28,6 +31,7 @@ func (h *Handler) Register(r chi.Router) {
 	r.Get("/status", h.status)
 	r.Get("/search", h.search)
 	r.Get("/rules/{id}", h.rule)
+	r.Get("/image", h.image)
 }
 
 func writeJSON(w http.ResponseWriter, status int, data any) {

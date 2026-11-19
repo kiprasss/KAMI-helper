@@ -7,10 +7,11 @@ import (
 )
 
 type ExtractedRule struct {
-	Point      string `json:"point"`
-	Text       string `json:"text"`
-	Punishment string `json:"punishment,omitempty"`
-	RepeatWarn bool   `json:"repeat_warn,omitempty"`
+	Point      string   `json:"point"`
+	Text       string   `json:"text"`
+	Punishment string   `json:"punishment,omitempty"`
+	RepeatWarn bool     `json:"repeat_warn,omitempty"`
+	Images     []string `json:"images,omitempty"`
 }
 
 var (
@@ -94,7 +95,7 @@ func ExtractRules(text string, maxContinuationLines int) []ExtractedRule {
 			return
 		}
 
-		block := strings.TrimSpace(strings.Join(cur.lines, "\n"))
+		block, images := ExtractImages(strings.TrimSpace(strings.Join(cur.lines, "\n")))
 		block = doubleSpaceRe.ReplaceAllString(newlinesRe.ReplaceAllString(block, " "), " ")
 		body, punishment := SplitPunishment(block)
 
@@ -104,6 +105,7 @@ func ExtractRules(text string, maxContinuationLines int) []ExtractedRule {
 				Text:       truncateRunes(body, 1500),
 				Punishment: truncateRunes(punishment, 500),
 				RepeatWarn: punishment != "" && IsRepeatWarn(punishment),
+				Images:     images,
 			})
 		}
 
@@ -125,6 +127,11 @@ func ExtractRules(text string, maxContinuationLines int) []ExtractedRule {
 
 		if SectionRe.MatchString(line) {
 			flush()
+			continue
+		}
+
+		if IsImageLine(line) && cur.extra < maxContinuationLines {
+			cur.lines = append(cur.lines, line)
 			continue
 		}
 

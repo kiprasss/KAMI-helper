@@ -10,6 +10,7 @@ export interface RuleDetails {
   point: string;
   text: string;
   punishment: string;
+  images: string[] | null;
 }
 
 export interface RuleResponse {

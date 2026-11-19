@@ -72,3 +72,30 @@ export async function hideMini() {
 export function getGameStatus(): Promise<GameStatus> {
   return invoke<GameStatus>("game_status");
 }
+
+export type OpacityTarget = "main" | "mini";
+
+export const OPACITY_EVENT = "kami-opacity";
+
+const OPACITY_KEYS: Record<OpacityTarget, string> = {
+  main: "kami-opacity-main",
+  mini: "kami-opacity-mini",
+};
+
+export function loadOpacity(target: OpacityTarget): number {
+  const value = Number(read(OPACITY_KEYS[target]));
+  return Number.isFinite(value) && value >= 20 && value <= 100 ? value : 100;
+}
+
+export function nextOpacity(current: number): number {
+  return current <= 20 ? 100 : current - 10;
+}
+
+export function saveOpacity(target: OpacityTarget, value: number) {
+  write(OPACITY_KEYS[target], String(value));
+  window.dispatchEvent(new CustomEvent(OPACITY_EVENT));
+}
+
+export function isOpacityKey(key: string | null): boolean {
+  return key === OPACITY_KEYS.main || key === OPACITY_KEYS.mini;
+}

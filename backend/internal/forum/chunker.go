@@ -137,6 +137,7 @@ func ChunkText(text string, maxLen, overlap int) []string {
 
 func headingCandidate(line string) bool {
 	return line != "" &&
+		!IsImageLine(line) &&
 		runeLen(line) <= 80 &&
 		!strings.Contains(line, "|") &&
 		!imageLineRe.MatchString(line) &&

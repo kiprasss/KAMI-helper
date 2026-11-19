@@ -40,6 +40,7 @@ func main() {
 		Retries:          2,
 		BrowserClearance: cfg.BrowserClearance,
 		BrowserPath:      cfg.BrowserPath,
+		ForumBaseURL:     cfg.ForumBaseURL,
 	})
 
 	servers := make([]kb.Server, 0, len(cfg.Servers))
@@ -108,13 +109,13 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	r.Route("/api/v1", api.NewHandler(store).Register)
+	r.Route("/api/v1", api.NewHandler(store, fetcher).Register)
 
 	httpServer := &http.Server{
 		Addr:         ":" + cfg.Port,
 		Handler:      r,
 		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		WriteTimeout: 40 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
 

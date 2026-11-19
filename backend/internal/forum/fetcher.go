@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -42,6 +43,7 @@ type FetcherOptions struct {
 	Retries          int
 	BrowserClearance bool
 	BrowserPath      string
+	ForumBaseURL     string
 }
 
 const clearanceRetry = 5 * time.Minute
@@ -51,6 +53,7 @@ type Fetcher struct {
 	client        *http.Client
 	mu            sync.Mutex
 	lastRequestAt time.Time
+	cookieMu      sync.RWMutex
 	cookie        string
 	lastClearance time.Time
 }
@@ -82,6 +85,19 @@ func sleepCtx(ctx context.Context, d time.Duration) error {
 	}
 }
 
+func (f *Fetcher) getCookie() string {
+	f.cookieMu.RLock()
+	defer f.cookieMu.RUnlock()
+
+	return f.cookie
+}
+
+func (f *Fetcher) setCookie(cookie string) {
+	f.cookieMu.Lock()
+	f.cookie = cookie
+	f.cookieMu.Unlock()
+}
+
 func (f *Fetcher) Get(ctx context.Context, url string) (string, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -101,8 +117,8 @@ func (f *Fetcher) Get(ctx context.Context, url string) (string, error) {
 		req.Header.Set("User-Agent", f.opts.UserAgent)
 		req.Header.Set("Accept", "text/html,application/xhtml+xml")
 		req.Header.Set("Accept-Language", "ru-RU,ru;q=0.9")
-		if f.cookie != "" {
-			req.Header.Set("Cookie", f.cookie)
+		if cookie := f.getCookie(); cookie != "" {
+			req.Header.Set("Cookie", cookie)
 		}
 
 		res, err := f.client.Do(req)
@@ -137,7 +153,7 @@ func (f *Fetcher) Get(ctx context.Context, url string) (string, error) {
 		body := string(bodyBytes)
 
 		if IsBotChallenge(res.StatusCode, body) {
-			f.cookie = ""
+			f.setCookie("")
 
 			if f.opts.BrowserClearance && !clearanceTried && time.Since(f.lastClearance) >= clearanceRetry {
 				clearanceTried = true
@@ -147,7 +163,7 @@ func (f *Fetcher) Get(ctx context.Context, url string) (string, error) {
 				if err != nil {
 					log.Printf("Не удалось пройти проверку браузера: %v", err)
 				} else {
-					f.cookie = cookie
+					f.setCookie(cookie)
 					f.lastClearance = time.Time{}
 					attempt--
 					continue
@@ -163,4 +179,65 @@ func (f *Fetcher) Get(ctx context.Context, url string) (string, error) {
 
 		return body, nil
 	}
+}
+
+var ErrNotImage = errors.New("по ссылке не изображение")
+
+const maxImageSize = 15 << 20
+
+func (f *Fetcher) FetchImage(ctx context.Context, imageURL string) ([]byte, string, error) {
+	data, contentType, err := f.fetchImageOnce(ctx, imageURL)
+	if errors.Is(err, ErrNotImage) && sameHost(imageURL, f.opts.ForumBaseURL) {
+		if _, getErr := f.Get(ctx, f.opts.ForumBaseURL+"/"); getErr == nil {
+			return f.fetchImageOnce(ctx, imageURL)
+		}
+	}
+
+	return data, contentType, err
+}
+
+func (f *Fetcher) fetchImageOnce(ctx context.Context, imageURL string) ([]byte, string, error) {
+	cookie := f.getCookie()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, imageURL, nil)
+	if err != nil {
+		return nil, "", err
+	}
+	req.Header.Set("User-Agent", f.opts.UserAgent)
+	req.Header.Set("Accept", "image/avif,image/webp,image/png,image/jpeg,image/*")
+	if cookie != "" && sameHost(imageURL, f.opts.ForumBaseURL) {
+		req.Header.Set("Cookie", cookie)
+	}
+
+	res, err := f.client.Do(req)
+	if err != nil {
+		return nil, "", err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return nil, "", &HTTPError{Status: res.StatusCode, URL: imageURL}
+	}
+
+	contentType := res.Header.Get("Content-Type")
+	if !strings.HasPrefix(contentType, "image/") {
+		return nil, "", ErrNotImage
+	}
+
+	data, err := io.ReadAll(io.LimitReader(res.Body, maxImageSize+1))
+	if err != nil {
+		return nil, "", err
+	}
+	if len(data) > maxImageSize {
+		return nil, "", errors.New("изображение слишком большое")
+	}
+
+	return data, contentType, nil
+}
+
+func sameHost(a, b string) bool {
+	ua, errA := url.Parse(a)
+	ub, errB := url.Parse(b)
+
+	return errA == nil && errB == nil && strings.EqualFold(ua.Hostname(), ub.Hostname())
 }

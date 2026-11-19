@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { FileText, Loader2, AlertCircle } from "lucide-react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 
+import { imageSrc } from "../../api/client";
 import { getRule } from "../../api/rules";
 import type { RuleDetails } from "../../types/rules";
 import type { SearchResult } from "../../types/search";
@@ -91,11 +92,15 @@ function SearchResultDetails({ result }: SearchResultDetailsProps) {
     .filter((part) => part && part !== "Главная" && part !== "Форум");
   const section = crumbs[crumbs.length - 1] ?? "";
 
-  const openOnForum = () => {
-    openUrl(details.url).catch((err: unknown) => {
+  const openLink = (url: string) => {
+    openUrl(url).catch((err: unknown) => {
       console.error("Не удалось открыть ссылку:", err);
     });
   };
+
+  const openOnForum = () => openLink(details.url);
+
+  const images = details.images ?? [];
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
@@ -147,6 +152,32 @@ function SearchResultDetails({ result }: SearchResultDetailsProps) {
               {details.text}
             </p>
           </div>
+
+          {images.length > 0 && (
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-amber-400">
+                Изображения
+              </p>
+
+              <div className="space-y-2">
+                {images.map((url) => (
+                  <img
+                    key={url}
+                    src={imageSrc(url)}
+                    alt=""
+                    loading="lazy"
+                    draggable={false}
+                    title="Открыть в браузере"
+                    onClick={() => openLink(url)}
+                    onError={(event) => {
+                      event.currentTarget.style.display = "none";
+                    }}
+                    className="w-full cursor-pointer rounded-lg"
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           {details.punishment && (
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
