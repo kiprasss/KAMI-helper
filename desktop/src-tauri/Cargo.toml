@@ -1,0 +1,31 @@
+[package]
+name = "desktop"
+version = "0.1.0"
+description = "KAMI Helper — поиск по правилам NOVA RP"
+authors = ["KAMI"]
+edition = "2024"
+
+[lib]
+name = "desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri-plugin-global-shortcut = "2.4.1"
+
+[target.'cfg(windows)'.dependencies]
+ferrisetw = "1.2.0"
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_System_Diagnostics_ToolHelp"] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true
